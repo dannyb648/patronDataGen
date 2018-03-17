@@ -3,14 +3,10 @@ const basePeople = require('./basePeople.js')
 
 var makeTime = function(timestamp){
   var a = new Date(timestamp * 1000);
-  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var year = a.getFullYear();
-  var month = months[a.getMonth()];
-  var date = a.getDate();
   var hour = a.getHours();
   var min = a.getMinutes();
   var sec = a.getSeconds();
-  var time = hour + ':' + min + ':' + sec ;
+  var time = ((hour > 9) ? hour : "0"+hour) + ':' + ((min > 9) ? min : "0"+min) + ':' + ((sec > 10) ? sec : "0"+sec) ;
   return time;
 }
 
@@ -20,7 +16,7 @@ var calcPace = function(age){
 
 var genPeople = function(amount){
 	var patrons = []
-	for(i = 0; i < amount; i++){
+	for(var i = 0; i < amount; i++){
 		var age = Math.floor(Math.random() * (100 - 18) ) + 18;
 		var person = {
 						'_id': i.toString(),
@@ -84,108 +80,158 @@ var pub = {
 	}
 }
 
-/*
-var spawnGroup = function(patrons, pub, time){
-	seat = Math.floor(Math.random() * 10)
-	var toBeSeated = []
-
-	if(pub.seats[seat].seated.length == 0){
-		var potential = patrons.filter(function (el) {
-			  return el.age <= time + 5 && el.age >= time - 5;
-			});
-		for(var i = 0; i < pub.seats[seat].max; i++){
-			toBeSeated = potential.pop()
-			console.log("TOBESEATED")
-			console.log(toBeSeated)			
-		}
-		return toBeSeated
-	} else {
-		return false
-	}
-
-*/
-
 var spawnGroup = function(patrons, time){
+	//generate random table to use
 	var seat = Math.floor(Math.random() * 10)
+	//calculate the target age for this seat (age / time corrolation)
 	var targetAge = (time + 100) - (time * 2)
+	//set age to 18 if underage picked
 	if(targetAge < 18){
 		targetAge = 18
 	}
-
+	//If the seat is empty
 	if(pub.seats[seat].seated.length == 0){
-		console.log("#DUBUG: Actually Spawning Group")
+		console.log(" - -  Actually Spawning Group")
+		//filter a potential list of aged drinkers
 		var potential = patrons.filter(function(o){
 			return o.age <= targetAge + 5 && o.age >= targetAge - 5
 		})
+		//for the entire table
 		for(var i = 0; i < pub.seats[seat].max; i++)
 			if(potential[i]){
-				console.log("PATRONS LEN" + patrons.length)
+				//push one from potential stack to seated
 				pub.seats[seat].seated.push(potential[i])
+				//remove this person from the patrons stack
 				patrons = patrons.filter(function(r){
 					return r._id != potential[i]._id
 				})
-				console.log("NEW PATRONS LEN" + patrons.length)
-				console.log(pub.seats[seat].seated)
 			}
+	} else {
+		console.log(" - - Seat is already taken")
 	}
-
 	return patrons
 }
 
-var removeGroup = function(patrons, time){
-	var seat = Math.floor(Math.random() * 10)
-	if(time < 18){
-		time = 18
+/*var oldestTable = function(){
+	var oldest = 'Z';
+	var oldestAge = 0;
+	for(var table = 0; table < pub.seats.length; table++){
+		console.log("xxxxxxxxxxxxxxxxx")
+		var tableAge = 0;
+		for(var seat = 0; seat < pub.seats[table].seated.length; seat++){
+			console.log("TABLE FILLED" + pub.seats[table].seated.length)
+			if(pub.seats[table].seated.length > 0){
+				if(pub.seats[table].seated[seat] == undefined){
+					console.log(table + " undefined")
+				}
+				//console.log("SEAT" + seat)
+				//console.log("IN SEAT" + pub.seats[table].seated[seat])
+				//console.log("IN SEAT AGE: " + seat + " : " + pub.seats[table].seated[seat].age)
+				//tableAge = tableAge + pub.seats[table].seated[seat].age
+			}
+		}
+		//tableAge = tableAge / pub.seats[seat].max
+		//if(tableAge > oldestAge){
+		//	oldest = seat
+		//}
 	}
+	return oldest
+}  */
+
+var removeGroup = function(patrons, time){
+	//pick seat to vacate
+	var seat = Math.floor((Math.random() * pub.seats.length) + 0)
 
 	if(pub.seats[seat].seated.length = pub.seats[seat].max){
-		console.log("SEATED" + pub.seats[seat].seated.length)
-		var potential = pub.seats[seat].seated.filter(function(o){
-			return o.age < time + 5 && o.age > time - 5
-		})
-
-		console.log(potential)
 		
-		if(potential.length > 0){
-			console.log("#DUBUG: Actually Removing Group")
+		console.log(" - - Removing Table:" + seat)
+		
+		//console.log("#" + makeTime(i) + ": Actually Removing Group")
+		var toPop = pub.seats[seat].seated.length
+		for(j = 0; j < toPop; j++){
+			pub.seats[seat].seated.pop()
 		}
-		//pub.seats[seat].seated = []
+	} else {
+		console.log(" - - Table not full: " + seat)
 	}
+}
+
+var calcEvents = function(i, usedSpace, factors){
+	var seedSpawn = Math.floor((Math.random() * 100) + 0)
+	var seedLeave = Math.floor((Math.random() * 100) + 0)
+	var hour = new Date(i * 1000).getHours();
+	var spawn = 20
+	var leave = 20
+	
+	if(hour > 10 && hour < 12){
+		spawn = spawn + 0 
+		leave = leave + 0
+	} else if(12 <= hour && 14 > hour){
+		spawn = spawn + 30
+		leave = leave + 0
+	} else if(14 <= hour && 17 > hour){
+		spawn = spawn + 10
+		leave = leave + 40
+	} else if(17 <= hour && 20 > hour){
+		spawn = spawn + 20
+		leave = leave + 0
+	} else if(20 <= hour && 22 >= hour){
+		spawn = spawn + 40
+		leave = leave - 10
+	} else if(hour == 23){
+		spawn = spawn + 30
+		leave = leave + 20
+	} else if(hour == 0){
+		leave = leave + 50
+		spawn = 0
+	}
+
+	var events = {'spawn': (spawn > seedSpawn ? true : false), 'leave': (leave > seedLeave ? true : false)}
+
+	return events
+
 }
 
 
 
 var gen = function(patrons){
 	
-	for(i = pub.times.openingTime; i < pub.times.closingTime; i = i + (60 * 5)){	
+	for(var i = pub.times.openingTime; i < pub.times.closingTime; i = i + (60 * 5)){	
 		/*
 		SEAT PEOPLE
 		*/
 		//calcualte the remaining capacity in the pub as a percentage.
 		//console.log("CAP" + pub.calcCapacity(pub.seats))
 		var usedSpace = Math.floor((pub.calcCapacity(pub.seats) * 100) / pub.calcMaxCapacity(pub.seats))
-		console.log("#DUBUG: Percentage of Remaining Capacity @ " + makeTime(i) + ": " + usedSpace + "%") 
+		var time = Math.floor(((i - pub.times.openingTime) * 100) / (pub.times.closingTime - pub.times.openingTime))
 
-		if(Math.floor(Math.random() * 100) > (usedSpace + 25)){
-			console.log("#DUBUG: RNG Remove Group Attempt @" + makeTime(i))
-			//removeGroup(patrons, time)
-		}
+		console.log("#" + makeTime(i) + ": Percentage of Used Space: " + usedSpace + "%") 
+		
+		
 
-		//spawn if RND is more than cap, so higher cap should be more chance of spawning.
-		if(Math.floor(Math.random() * 100) > usedSpace){
-			console.log("#DUBUG: RNG Spawn Attempt @" + makeTime(i))
-			//calculate time remaining as a percentage
-			var time = Math.floor(((i - pub.times.openingTime) * 100) / (pub.times.closingTime - pub.times.openingTime))
+		//RETHINK THIS LOGIC, IT DOESNT WORK! 
+
+		//if rng 0 - 100 is less than percentage of capacity left... 
+
+		var events = calcEvents(i, usedSpace, {})
+
+		if(events.leave){
+			console.log(" - Remove Group Attempt")
+			removeGroup(patrons, time)
+		} 
+
+		if (events.spawn){
+			console.log(" - Add Group Attempt")
 			patrons = spawnGroup(patrons, time)
 		}
-		/*
-		REMOVE PEOPLE
-		*/
+
 		
 
 	}
 	console.log("FINAL STATE")
-	console.log(pub.seats)
+	for(i = 0; i < pub.seats.length; i++){
+		console.log(pub.seats[i])
+	}
 
 }
 
